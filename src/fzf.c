@@ -1313,3 +1313,53 @@ void fzf_free_slab(fzf_slab_t *slab) {
     free(slab);
   }
 }
+
+// ENTRYMANAGER THINGS
+static fzf_node_t *create_node(int val) {
+  fzf_node_t *node = (fzf_node_t *)malloc(sizeof(fzf_node_t));
+  node->val = val;
+  node->next = NULL;
+  node->prev = NULL;
+  return node;
+}
+
+// CLEANUP
+fzf_linked_list_t *fzf_list_create() {
+  fzf_linked_list_t *list =
+      (fzf_linked_list_t *)malloc(sizeof(fzf_linked_list_t));
+  list->len = 0;
+  list->head = NULL;
+  list->tail = NULL;
+  return list;
+}
+
+void fzf_list_append(fzf_linked_list_t *list, int val) {
+  ++list->len;
+  fzf_node_t *node = create_node(val);
+  if (list->head == NULL) {
+    list->head = node;
+  }
+
+  if (list->tail) {
+    list->tail->next = node;
+    node->prev = list->tail;
+  }
+
+  list->tail = node;
+  // TODO(conni2461): track_at
+}
+
+void fzf_list_prepend(fzf_linked_list_t *list, int val) {
+  ++list->len;
+  fzf_node_t *node = create_node(val);
+  if (list->tail == NULL) {
+    list->tail = node;
+  }
+
+  if (list->head) {
+    list->head->prev = node;
+    node->next = list->head;
+  }
+  list->head = node;
+  // TODO(conni2461): track_at
+}

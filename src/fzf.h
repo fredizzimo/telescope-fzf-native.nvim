@@ -103,4 +103,22 @@ fzf_slab_t *fzf_make_slab(size_t size_16, size_t size_32);
 fzf_slab_t *fzf_make_default_slab(void);
 void fzf_free_slab(fzf_slab_t *slab);
 
+// ENTRYMANAGER THINGS
+typedef struct fzf_node_s fzf_node_t;
+struct fzf_node_s {
+  fzf_node_t *next;
+  fzf_node_t *prev;
+  int val;
+};
+
+typedef struct {
+  fzf_node_t *head;
+  fzf_node_t *tail;
+  size_t len;
+} fzf_linked_list_t;
+
+fzf_linked_list_t *fzf_list_create();
+void fzf_list_append(fzf_linked_list_t *list, int val);
+void fzf_list_prepend(fzf_linked_list_t *list, int val);
+
 #endif // _fzf_H_

@@ -39,6 +39,18 @@ ffi.cdef [[
 
   fzf_slab_t *fzf_make_default_slab(void);
   void fzf_free_slab(fzf_slab_t *slab);
+
+  // ENTRYMANAGER THINGS
+  typedef struct {} fzf_node_t;
+  typedef struct {
+    fzf_node_t *head;
+    fzf_node_t *tail;
+    size_t len;
+  } fzf_linked_list_t;
+
+  fzf_linked_list_t *fzf_list_create();
+  void fzf_list_append(fzf_linked_list_t *list, int val);
+  void fzf_list_prepend(fzf_linked_list_t *list, int val);
 ]]
 
 local fzf = {}
@@ -78,4 +90,28 @@ fzf.free_slab = function(s)
   native.fzf_free_slab(s)
 end
 
+local LinkedList = {}
+LinkedList.__index = LinkedList
+
+function LinkedList:new(opts)
+  local list = native.fzf_list_create()
+
+  return setmetatable({
+    list = list,
+  }, self)
+end
+
+function LinkedList:append(item)
+  native.fzf_list_append(self.list, item)
+end
+
+function LinkedList:prepend(item)
+  native.fzf_list_prepend(self.list, item)
+end
+
+function LinkedList:size()
+  return tonumber(self.list.len)
+end
+
+fzf.LinkedList = LinkedList
 return fzf
