@@ -3,11 +3,6 @@
 #include <examiner.h>
 #include <stdlib.h>
 
-typedef struct {
-  char *data;
-  size_t size;
-} fzf_string_t;
-
 typedef enum {
   score_match = 16,
   score_gap_start = -3,
