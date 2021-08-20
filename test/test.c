@@ -16,22 +16,20 @@ typedef enum {
 
 #define call_alg(alg, case, txt, pat, assert_block)                            \
   {                                                                            \
-    fzf_result_t res = alg(case, false, txt, pat, true, NULL);                 \
+    fzf_position_t pos;                                                        \
+    fzf_alloc_positions(&pos, 1024);                                           \
+    fzf_result_t res = alg(case, false, txt, pat, &pos, NULL);                 \
     assert_block;                                                              \
-    if (res.pos) {                                                             \
-      free(res.pos->data);                                                     \
-      free(res.pos);                                                           \
-    }                                                                          \
+    fzf_free_positions(&pos);                                                  \
   }                                                                            \
   {                                                                            \
     fzf_slab_t *slab = fzf_make_default_slab();                                \
-    fzf_result_t res = alg(case, false, txt, pat, true, slab);                 \
+    fzf_position_t pos;                                                        \
+    fzf_alloc_positions(&pos, 1024);                                           \
+    fzf_result_t res = alg(case, false, txt, pat, &pos, slab);                 \
     assert_block;                                                              \
-    if (res.pos) {                                                             \
-      free(res.pos->data);                                                     \
-      free(res.pos);                                                           \
-    }                                                                          \
     fzf_free_slab(slab);                                                       \
+    fzf_free_positions(&pos);                                                  \
   }
 
 static int8_t max_i8(int8_t a, int8_t b) {
@@ -651,20 +649,23 @@ TEST(score_integration, complex_term) {
   score_wrapper(".lua$ 'previewer !'term", input, expected);
 }
 
-static void pos_wrapper(char *pattern, char **input, int **expected) {
+static void pos_wrapper(char *pattern, char **input, int **expected,
+                        size_t pos_buffer_size) {
   fzf_slab_t *slab = fzf_make_default_slab();
   fzf_pattern_t *pat = fzf_parse_pattern(case_smart, false, pattern, true);
+  fzf_position_t pos;
+  fzf_alloc_positions(&pos, pos_buffer_size);
   for (size_t i = 0; input[i] != NULL; ++i) {
-    fzf_position_t *pos = fzf_get_positions(input[i], pat, slab);
+    fzf_get_positions(input[i], pat, &pos, slab);
     // Verify that the size is correct
     if (expected[i]) {
-      ASSERT_EQ(-1, expected[i][pos->size]);
+      ASSERT_EQ(-1, expected[i][pos.size]);
     } else {
-      ASSERT_EQ(0, pos->size);
+      ASSERT_EQ(0, pos.size);
     }
-    ASSERT_EQ_MEM(expected[i], pos->data, pos->size * sizeof(pos->data[0]));
-    fzf_free_positions(pos);
+    ASSERT_EQ_MEM(expected[i], pos.data, pos.size * sizeof(pos.data[0]));
   }
+  fzf_free_positions(&pos);
   fzf_free_pattern(pat);
   fzf_free_slab(slab);
 }
@@ -678,33 +679,33 @@ TEST(pos_integration, simple) {
   int match3[] = {6, 5, 4, -1};
   int match4[] = {28, 27, 26, -1};
   int *expected[] = {match1, match2, match3, match4, NULL};
-  pos_wrapper("fzf", input, expected);
+  pos_wrapper("fzf", input, expected, 1024);
 }
 
 TEST(pos_integration, invert) {
   char *input[] = {"fzf", "main.c", "src/fzf", "fz/noooo", NULL};
   int *expected[] = {NULL, NULL, NULL, NULL, NULL};
-  pos_wrapper("!fzf", input, expected);
+  pos_wrapper("!fzf", input, expected, 1024);
 }
 
 TEST(pos_integration, and_with_second_invert) {
   char *input[] = {"src/fzf.c", "lua/fzf_lib.lua", "build/libfzf", NULL};
   int match1[] = {6, 5, 4, -1};
   int *expected[] = {match1, NULL, NULL};
-  pos_wrapper("fzf !lib", input, expected);
+  pos_wrapper("fzf !lib", input, expected, 1024);
 }
 
 TEST(pos_integration, and_all_invert) {
   char *input[] = {"src/fzf.c", "README.md", "lua/asdf", "test/test.c", NULL};
   int *expected[] = {NULL, NULL, NULL, NULL};
-  pos_wrapper("!fzf !test", input, expected);
+  pos_wrapper("!fzf !test", input, expected, 1024);
 }
 
 TEST(pos_integration, with_escaped_space) {
   char *input[] = {"file ", "file lua", "lua", NULL};
   int match1[] = {7, 6, 5, 4, 3, 2, 1, 0, -1};
   int *expected[] = {NULL, match1, NULL};
-  pos_wrapper("file\\ lua", input, expected);
+  pos_wrapper("file\\ lua", input, expected, 1024);
 }
 
 TEST(pos_integration, only_escaped_space) {
@@ -712,7 +713,7 @@ TEST(pos_integration, only_escaped_space) {
   int match1[] = {4, -1};
   int match2[] = {3, -1};
   int *expected[] = {match1, match2, NULL, NULL, NULL};
-  pos_wrapper("\\ ", input, expected);
+  pos_wrapper("\\ ", input, expected, 1024);
 }
 
 TEST(pos_integration, simple_or) {
@@ -721,7 +722,7 @@ TEST(pos_integration, simple_or) {
   int match1[] = {0, 1, 2, -1};
   int match2[] = {0, 1, 2, -1};
   int *expected[] = {match1, NULL, NULL, NULL, match2};
-  pos_wrapper("'src | ^Lua", input, expected);
+  pos_wrapper("'src | ^Lua", input, expected, 1024);
 }
 
 TEST(pos_integration, complex_term) {
@@ -731,7 +732,23 @@ TEST(pos_integration, complex_term) {
   int match1[] = {16, 17, 18, 19, 0, 1, 2, 3, 4, 5, 6, 7, 8, -1};
   int match2[] = {17, 18, 19, 20, 0, 1, 2, 3, 4, 5, 6, 7, 8, -1};
   int *expected[] = {NULL, NULL, match1, match2, NULL};
-  pos_wrapper(".lua$ 'previewer !'term", input, expected);
+  pos_wrapper(".lua$ 'previewer !'term", input, expected, 1024);
+}
+
+TEST(pos_integration, too_small_buffer) {
+  char *input[] = {
+      "this_match_is_too_long_and_only_partial_result_will_be_returned", NULL};
+  int match1[] = {21, 20, 19, 18, 16, -1};
+  int *expected[] = {match1};
+  pos_wrapper("toolong", input, expected, 5);
+}
+
+TEST(pos_integration, too_small_buffer_literal_match) {
+  char *input[] = {
+      "this_match_is_too_long_and_only_partial_result_will_be_returned", NULL};
+  int match1[] = {14, 15, 16, 17, 18, -1};
+  int *expected[] = {match1};
+  pos_wrapper("'too_long", input, expected, 5);
 }
 
 int main(int argc, char **argv) {
