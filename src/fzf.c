@@ -188,6 +188,10 @@ static size_t min64u(size_t a, size_t b) {
   return (a < b) ? a : b;
 }
 
+static size_t max64u(size_t a, size_t b) {
+  return (a > b) ? a : b;
+}
+
 static void clear_positions(fzf_position_t *pos) {
   if (pos) {
     pos->size = 0;
@@ -1002,22 +1006,22 @@ static fzf_result_t fzf_call_alg(fzf_term_t *term, bool normalize,
   switch (term->typ) {
   case term_fuzzy:
     return fzf_fuzzy_match_v2_str(term->case_sensitive, normalize, input,
-                                  (fzf_string_t *)term->text, pos, slab);
+                                  term->text, pos, slab);
   case term_exact:
     return fzf_exact_match_naive_str(term->case_sensitive, normalize, input,
-                                     (fzf_string_t *)term->text, pos, slab);
+                                     term->text, pos, slab);
   case term_prefix:
     return fzf_prefix_match_str(term->case_sensitive, normalize, input,
-                                (fzf_string_t *)term->text, pos, slab);
+                                term->text, pos, slab);
   case term_suffix:
     return fzf_suffix_match_str(term->case_sensitive, normalize, input,
-                                (fzf_string_t *)term->text, pos, slab);
+                                term->text, pos, slab);
   case term_equal:
     return fzf_equal_match_str(term->case_sensitive, normalize, input,
-                               (fzf_string_t *)term->text, pos, slab);
+                               term->text, pos, slab);
   }
   return fzf_fuzzy_match_v2_str(term->case_sensitive, normalize, input,
-                                (fzf_string_t *)term->text, pos, slab);
+                                term->text, pos, slab);
 }
 
 fzf_pattern_t *fzf_parse_pattern_str(fzf_case_types case_mode, bool normalize,
@@ -1289,6 +1293,20 @@ void fzf_free_positions(fzf_position_t *pos) {
       free(pos->data);
     }
   }
+}
+
+size_t fzf_get_num_positions(fzf_pattern_t *pattern) {
+  size_t total = 0;
+  for (size_t i = 0; i < pattern->size; i++) {
+    fzf_term_set_t *term_set = pattern->ptr[i];
+    size_t term_size = 0;
+    for (size_t j = 0; j < term_set->size; j++) {
+      fzf_term_t *term = &term_set->ptr[j];
+      term_size = max64u(term->text->size, term_size);
+    }
+    total += term_size;
+  }
+  return total;
 }
 
 fzf_slab_t *fzf_make_slab(size_t size_16, size_t size_32) {

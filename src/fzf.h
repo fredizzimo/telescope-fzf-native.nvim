@@ -49,10 +49,15 @@ typedef enum {
 typedef enum { case_smart = 0, case_ignore, case_respect } fzf_case_types;
 
 typedef struct {
+  const char *data;
+  size_t size;
+} fzf_string_t;
+
+typedef struct {
   fzf_alg_types typ;
   bool inv;
   char *ptr;
-  void *text;
+  fzf_string_t *text;
   bool case_sensitive;
 } fzf_term_t;
 
@@ -68,11 +73,6 @@ typedef struct {
   size_t cap;
   bool only_inv;
 } fzf_pattern_t;
-
-typedef struct {
-  const char *data;
-  size_t size;
-} fzf_string_t;
 
 fzf_result_t fzf_fuzzy_match_v1(bool case_sensitive, bool normalize,
                                 const char *text, const char *pattern,
@@ -129,6 +129,7 @@ void fzf_get_positions_str(fzf_string_t *text, fzf_pattern_t *pattern,
                            fzf_position_t *positions, fzf_slab_t *slab);
 void fzf_alloc_positions(fzf_position_t *pos, size_t size);
 void fzf_free_positions(fzf_position_t *pos);
+size_t fzf_get_num_positions(fzf_pattern_t *pattern);
 
 fzf_slab_t *fzf_make_slab(size_t size_16, size_t size_32);
 fzf_slab_t *fzf_make_default_slab(void);
