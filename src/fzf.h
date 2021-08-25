@@ -74,43 +74,67 @@ typedef struct {
   bool only_inv;
 } fzf_pattern_t;
 
+typedef struct {
+  int8_t score_match;
+  int8_t score_gap_start;
+  int8_t score_gap_extention;
+  int8_t bonus_boundary;
+  int8_t bonus_non_word;
+  int8_t bonus_camel_123;
+  int8_t bonus_consecutive;
+  int8_t bonus_first_char_multiplier;
+} fzf_score_t;
+
+extern fzf_score_t fzf_default_scoring;
+
 fzf_result_t fzf_fuzzy_match_v1(bool case_sensitive, bool normalize,
-                                const char *text, const char *pattern,
-                                fzf_position_t *pos, fzf_slab_t *slab);
+                                fzf_score_t *scoring, const char *text,
+                                const char *pattern, fzf_position_t *pos,
+                                fzf_slab_t *slab);
 fzf_result_t fzf_fuzzy_match_v1_str(bool case_sensitive, bool normalize,
-                                    fzf_string_t *text, fzf_string_t *pattern,
-                                    fzf_position_t *pos, fzf_slab_t *slab);
+                                    fzf_score_t *scoring, fzf_string_t *text,
+                                    fzf_string_t *pattern, fzf_position_t *pos,
+                                    fzf_slab_t *slab);
 fzf_result_t fzf_fuzzy_match_v2(bool case_sensitive, bool normalize,
-                                const char *text, const char *pattern,
-                                fzf_position_t *pos, fzf_slab_t *slab);
+                                fzf_score_t *scoring, const char *text,
+                                const char *pattern, fzf_position_t *pos,
+                                fzf_slab_t *slab);
 fzf_result_t fzf_fuzzy_match_v2_str(bool case_sensitive, bool normalize,
-                                    fzf_string_t *text, fzf_string_t *pattern,
-                                    fzf_position_t *pos, fzf_slab_t *slab);
+                                    fzf_score_t *scoring, fzf_string_t *text,
+                                    fzf_string_t *pattern, fzf_position_t *pos,
+                                    fzf_slab_t *slab);
 fzf_result_t fzf_exact_match_naive(bool case_sensitive, bool normalize,
-                                   const char *text, const char *pattern,
-                                   fzf_position_t *pos, fzf_slab_t *slab);
+                                   fzf_score_t *scoring, const char *text,
+                                   const char *pattern, fzf_position_t *pos,
+                                   fzf_slab_t *slab);
 fzf_result_t fzf_exact_match_naive_str(bool case_sensitive, bool normalize,
-                                       fzf_string_t *text,
+                                       fzf_score_t *scoring, fzf_string_t *text,
                                        fzf_string_t *pattern,
                                        fzf_position_t *pos, fzf_slab_t *slab);
 fzf_result_t fzf_prefix_match(bool case_sensitive, bool normalize,
-                              const char *text, const char *pattern,
-                              fzf_position_t *pos, fzf_slab_t *slab);
+                              fzf_score_t *scoring, const char *text,
+                              const char *pattern, fzf_position_t *pos,
+                              fzf_slab_t *slab);
 fzf_result_t fzf_prefix_match_str(bool case_sensitive, bool normalize,
-                                  fzf_string_t *text, fzf_string_t *pattern,
-                                  fzf_position_t *pos, fzf_slab_t *slab);
+                                  fzf_score_t *scoring, fzf_string_t *text,
+                                  fzf_string_t *pattern, fzf_position_t *pos,
+                                  fzf_slab_t *slab);
 fzf_result_t fzf_suffix_match(bool case_sensitive, bool normalize,
-                              const char *text, const char *pattern,
-                              fzf_position_t *pos, fzf_slab_t *slab);
+                              fzf_score_t *scoring, const char *text,
+                              const char *pattern, fzf_position_t *pos,
+                              fzf_slab_t *slab);
 fzf_result_t fzf_suffix_match_str(bool case_sensitive, bool normalize,
-                                  fzf_string_t *text, fzf_string_t *pattern,
-                                  fzf_position_t *pos, fzf_slab_t *slab);
+                                  fzf_score_t *scoring, fzf_string_t *text,
+                                  fzf_string_t *pattern, fzf_position_t *pos,
+                                  fzf_slab_t *slab);
 fzf_result_t fzf_equal_match(bool case_sensitive, bool normalize,
-                             const char *text, const char *pattern,
-                             fzf_position_t *pos, fzf_slab_t *slab);
+                             fzf_score_t *scoring, const char *text,
+                             const char *pattern, fzf_position_t *pos,
+                             fzf_slab_t *slab);
 fzf_result_t fzf_equal_match_str(bool case_sensitive, bool normalize,
-                                 fzf_string_t *text, fzf_string_t *pattern,
-                                 fzf_position_t *pos, fzf_slab_t *slab);
+                                 fzf_score_t *scoring, fzf_string_t *text,
+                                 fzf_string_t *pattern, fzf_position_t *pos,
+                                 fzf_slab_t *slab);
 
 /* interface */
 fzf_pattern_t *fzf_parse_pattern(fzf_case_types case_mode, bool normalize,
@@ -120,13 +144,15 @@ fzf_pattern_t *fzf_parse_pattern_str(fzf_case_types case_mode, bool normalize,
 void fzf_free_pattern(fzf_pattern_t *pattern);
 
 int32_t fzf_get_score(const char *text, fzf_pattern_t *pattern,
-                      fzf_slab_t *slab);
+                      fzf_score_t *scoring, fzf_slab_t *slab);
 int32_t fzf_get_score_str(fzf_string_t *text, fzf_pattern_t *pattern,
-                          fzf_slab_t *slab);
+                          fzf_score_t *scoring, fzf_slab_t *slab);
 void fzf_get_positions(const char *text, fzf_pattern_t *pattern,
-                       fzf_position_t *positions, fzf_slab_t *slab);
+                       fzf_score_t *scoring, fzf_position_t *positions,
+                       fzf_slab_t *slab);
 void fzf_get_positions_str(fzf_string_t *text, fzf_pattern_t *pattern,
-                           fzf_position_t *positions, fzf_slab_t *slab);
+                           fzf_score_t *scoring, fzf_position_t *positions,
+                           fzf_slab_t *slab);
 void fzf_alloc_positions(fzf_position_t *pos, size_t size);
 void fzf_free_positions(fzf_position_t *pos);
 size_t fzf_get_num_positions(fzf_pattern_t *pattern);

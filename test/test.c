@@ -3,22 +3,28 @@
 #include <examiner.h>
 #include <stdlib.h>
 
-typedef enum {
-  score_match = 16,
-  score_gap_start = -3,
-  score_gap_extension = -1,
-  bonus_boundary = score_match / 2,
-  bonus_non_word = score_match / 2,
-  bonus_camel_123 = bonus_boundary + score_gap_extension,
-  bonus_consecutive = -(score_gap_start + score_gap_extension),
-  bonus_first_char_multiplier = 2,
-} score_t;
-
 #define call_alg(alg, case, txt, pat, assert_block)                            \
+  fzf_score_t scoring = fzf_default_scoring;                                   \
+  int8_t score_match = scoring.score_match;                                    \
+  int8_t score_gap_start = scoring.score_gap_start;                            \
+  int8_t score_gap_extension = scoring.score_gap_extention;                    \
+  int8_t bonus_boundary = scoring.bonus_boundary;                              \
+  int8_t bonus_non_word = scoring.bonus_non_word;                              \
+  int8_t bonus_camel_123 = scoring.bonus_camel_123;                            \
+  int8_t bonus_consecutive = scoring.bonus_consecutive;                        \
+  int8_t bonus_first_char_multiplier = scoring.bonus_first_char_multiplier;    \
+  (void)score_match;                                                           \
+  (void)score_gap_start;                                                       \
+  (void)score_gap_extension;                                                   \
+  (void)bonus_boundary;                                                        \
+  (void)bonus_non_word;                                                        \
+  (void)bonus_camel_123;                                                       \
+  (void)bonus_consecutive;                                                     \
+  (void)bonus_first_char_multiplier;                                           \
   {                                                                            \
     fzf_position_t pos;                                                        \
     fzf_alloc_positions(&pos, 1024);                                           \
-    fzf_result_t res = alg(case, false, txt, pat, &pos, NULL);                 \
+    fzf_result_t res = alg(case, false, &scoring, txt, pat, &pos, NULL);       \
     assert_block;                                                              \
     fzf_free_positions(&pos);                                                  \
   }                                                                            \
@@ -26,7 +32,7 @@ typedef enum {
     fzf_slab_t *slab = fzf_make_default_slab();                                \
     fzf_position_t pos;                                                        \
     fzf_alloc_positions(&pos, 1024);                                           \
-    fzf_result_t res = alg(case, false, txt, pat, &pos, slab);                 \
+    fzf_result_t res = alg(case, false, &scoring, txt, pat, &pos, slab);       \
     assert_block;                                                              \
     fzf_free_slab(slab);                                                       \
     fzf_free_positions(&pos);                                                  \
@@ -604,7 +610,7 @@ static void score_wrapper(char *pattern, char **input, int *expected) {
   fzf_slab_t *slab = fzf_make_default_slab();
   fzf_pattern_t *pat = fzf_parse_pattern(case_smart, false, pattern, true);
   for (size_t i = 0; input[i] != NULL; ++i) {
-    ASSERT_EQ(expected[i], fzf_get_score(input[i], pat, slab));
+    ASSERT_EQ(expected[i], fzf_get_score(input[i], pat, NULL, slab));
   }
   fzf_free_pattern(pat);
   fzf_free_slab(slab);
@@ -656,7 +662,7 @@ static void pos_wrapper(char *pattern, char **input, int **expected,
   fzf_position_t pos;
   fzf_alloc_positions(&pos, pos_buffer_size);
   for (size_t i = 0; input[i] != NULL; ++i) {
-    fzf_get_positions(input[i], pat, &pos, slab);
+    fzf_get_positions(input[i], pat, NULL, &pos, slab);
     // Verify that the size is correct
     if (expected[i]) {
       ASSERT_EQ(-1, expected[i][pos.size]);
