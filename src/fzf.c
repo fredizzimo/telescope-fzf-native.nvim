@@ -45,6 +45,7 @@ typedef int32_t char_class;
 typedef char byte;
 
 fzf_score_t fzf_default_scoring = {
+    .score_match_pos = NULL,
     .score_match = 16,
     .score_gap_start = -3,
     .score_gap_extention = -1,
@@ -577,14 +578,19 @@ fzf_result_t fzf_fuzzy_match_v2_str(bool case_sensitive, bool normalize,
     }
 
     if (c == pchar0) {
+      const int8_t score_match = scoring->score_match_pos
+                                     ? scoring->score_match_pos[idx + off]
+                                     : scoring->score_match;
       int16_t score =
-          scoring->score_match + bonus * scoring->bonus_first_char_multiplier;
+          score_match + bonus * scoring->bonus_first_char_multiplier;
       H0sub.data[off] = score;
       C0sub.data[off] = 1;
       if (M == 1 && (score > max_score)) {
         max_score = score;
         max_score_pos = idx + off;
-        if (bonus == scoring->bonus_boundary) {
+        // break out early only when the match scoring is not position dependent
+        if (scoring->score_match_pos == NULL &&
+            bonus == scoring->bonus_boundary) {
           break;
         }
       }
@@ -673,7 +679,10 @@ fzf_result_t fzf_fuzzy_match_v2_str(bool case_sensitive, bool normalize,
       }
 
       if (pchar == c) {
-        s1 = Hdiag.data[j] + scoring->score_match;
+        const int8_t score_match = scoring->score_match_pos
+                                       ? scoring->score_match_pos[col]
+                                       : scoring->score_match;
+        s1 = Hdiag.data[j] + score_match;
         int16_t b = Bsub.data[j];
         consecutive = Cdiag.data[j] + 1;
         if (b == scoring->bonus_boundary) {

@@ -6,6 +6,7 @@
 #define call_alg(alg, case, txt, pat, assert_block)                            \
   fzf_score_t scoring = fzf_default_scoring;                                   \
   int8_t score_match = scoring.score_match;                                    \
+  int8_t *score_match_pos = scoring.score_match_pos;                           \
   int8_t score_gap_start = scoring.score_gap_start;                            \
   int8_t score_gap_extension = scoring.score_gap_extention;                    \
   int8_t bonus_boundary = scoring.bonus_boundary;                              \
@@ -14,6 +15,7 @@
   int8_t bonus_consecutive = scoring.bonus_consecutive;                        \
   int8_t bonus_first_char_multiplier = scoring.bonus_first_char_multiplier;    \
   (void)score_match;                                                           \
+  (void)score_match_pos;                                                       \
   (void)score_gap_start;                                                       \
   (void)score_gap_extension;                                                   \
   (void)bonus_boundary;                                                        \
@@ -288,6 +290,39 @@ TEST(fuzzy_match_v2, case23) {
     ASSERT_EQ(-1, res.end);
     ASSERT_EQ(0, res.score);
   });
+}
+
+TEST(fuzzy_match_v2, custom_scores) {
+  const int8_t d = 8;  // detail
+  const int8_t q = 16; // qualifier
+  const int8_t n = 32; // name
+  fzf_score_t fzf_default_scoring = {
+      .score_match_pos =
+          (int8_t[]){
+              d, d, d, d, d, q, q, q, q, q, q, q, q, q, q, q, q, q, q, q, q,
+              q, n, n, n, n, n, n, n, n, n, d, d, d, d, d, d, d, d, d, d, d,
+              d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d,
+              d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d, d,
+          },
+      .score_match = 0,
+      .score_gap_start = -3,
+      .score_gap_extention = -1,
+      .bonus_boundary = 16 / 2,
+      .bonus_non_word = 16 / 2,
+      .bonus_camel_123 = 16 / 2 - 1,
+      .bonus_consecutive = 3 + 1,
+      .bonus_first_char_multiplier = 1,
+  };
+  call_alg(fzf_fuzzy_match_v2, false,
+           "void ccls::(anon ns)::sift_down(RandomIt begin, RandomIt end, "
+           "const Compare &comp)",
+           "sido", {
+             ASSERT_EQ(22, res.start);
+             ASSERT_EQ(29, res.end);
+             int expected_score = n * 4 + 4 * bonus_boundary + score_gap_start +
+                                  2 * score_gap_extension;
+             ASSERT_EQ(expected_score, res.score);
+           });
 }
 
 TEST(fuzzy_match_v1, case1) {

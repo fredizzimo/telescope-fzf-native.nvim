@@ -75,6 +75,11 @@ typedef struct {
 } fzf_pattern_t;
 
 typedef struct {
+  // score_match is used if score_match_pos is set to NULL
+  // otherwise, score_match is ignored and score_match_pos should be set to an
+  // array with the same length as the input, where each element represents the
+  // match score for that position.
+  int8_t *score_match_pos;
   int8_t score_match;
   int8_t score_gap_start;
   int8_t score_gap_extention;
